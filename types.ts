@@ -2,7 +2,7 @@ export interface VocabItem {
   id: string;
   word: string;
   contextSentence: string; // Contains 2 sentences illustrating common usage
-  userMeaning: string;
+  userMeaning: string; // IPA + Chinese Meaning
   collocations: string[];
   notes: string; // User remarks/notes
   createdAt: number;

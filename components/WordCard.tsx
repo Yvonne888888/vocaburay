@@ -23,6 +23,25 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
     [MasteryLevel.Mastered]: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   };
 
+  // Helper to style IPA specifically if present
+  const renderMeaning = (text: string) => {
+    if (text.includes('/')) {
+      const parts = text.split(/(\/.*?\/)/);
+      return (
+        <>
+          {parts.map((part, i) => 
+            part.startsWith('/') && part.endsWith('/') ? (
+              <span key={i} className="font-mono text-zinc-400 dark:text-zinc-500 mr-2 text-xs">{part}</span>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          )}
+        </>
+      );
+    }
+    return text;
+  };
+
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow mb-3">
       <div className="flex justify-between items-start mb-2">
@@ -33,8 +52,8 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
               {item.masteryLevel}
             </span>
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 italic mt-0.5 line-clamp-1">
-            {item.userMeaning}
+          <p className="text-sm text-zinc-600 dark:text-zinc-300 font-medium mt-0.5 line-clamp-1">
+            {renderMeaning(item.userMeaning)}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -55,7 +74,7 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
 
       {/* Preview Context (if not expanded) */}
       {!expanded && (
-        <div className="text-sm text-zinc-600 dark:text-zinc-300 mt-2 border-l-2 border-zinc-200 dark:border-zinc-700 pl-3 py-1">
+        <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 border-l-2 border-zinc-200 dark:border-zinc-700 pl-3 py-1 italic">
           "{item.contextSentence.slice(0, 50)}{item.contextSentence.length > 50 ? '...' : ''}"
         </div>
       )}
@@ -86,7 +105,7 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
 
           {/* Notes Section */}
           {item.notes && (
-            <div className="flex gap-2 items-start text-zinc-500 dark:text-zinc-400">
+            <div className="flex gap-2 items-start text-zinc-500 dark:text-zinc-400 mt-2">
               <StickyNote size={14} className="mt-0.5 shrink-0" />
               <p className="text-xs italic">{item.notes}</p>
             </div>
