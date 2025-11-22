@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
-import { VocabItem, MasteryLevel } from '../types';
+import { VocabItem, MasteryLevel, DictionaryData } from '../types';
 import { generateCollocations, generateContext, generateMeaning } from '../services/geminiService';
-import { Save, X, Wand2, Loader2, PlusCircle, Sparkles } from 'lucide-react';
+import { fetchDictionaryData } from '../services/dictionaryService';
+import { Save, X, Wand2, Loader2, PlusCircle, Sparkles, Book, Volume2 } from 'lucide-react';
 
 interface WordFormProps {
   initialData?: VocabItem | null;
@@ -15,10 +17,12 @@ export const WordForm: React.FC<WordFormProps> = ({ initialData, onSave, onCance
   const [context, setContext] = useState(initialData?.contextSentence || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [collocations, setCollocations] = useState<string[]>(initialData?.collocations || []);
+  const [dictionaryData, setDictionaryData] = useState<DictionaryData | undefined>(initialData?.dictionaryData);
   
-  // AI States
+  // AI & API States
   const [loadingCollocations, setLoadingCollocations] = useState(false);
   const [loadingAutoFill, setLoadingAutoFill] = useState(false);
+  const [loadingDict, setLoadingDict] = useState(false);
 
   const handleAutoFill = async () => {
     if (!word) return;
@@ -36,9 +40,26 @@ export const WordForm: React.FC<WordFormProps> = ({ initialData, onSave, onCance
     setLoadingAutoFill(false);
   };
 
+  const fetchDict = async (term: string) => {
+    if (!term) return;
+    setLoadingDict(true);
+    const data = await fetchDictionaryData(term);
+    if (data) {
+      setDictionaryData(data);
+    }
+    setLoadingDict(false);
+  };
+
   const handleBlurWord = () => {
-    // Auto-trigger if word exists but meaning/context are empty
-    if (word && (!meaning || !context) && !initialData) {
+    if (!word) return;
+
+    // 1. Trigger Dictionary Fetch (if no data exists yet)
+    if (!dictionaryData) {
+      fetchDict(word);
+    }
+
+    // 2. Auto-trigger AI if word exists but meaning/context are empty (and not editing)
+    if ((!meaning || !context) && !initialData) {
       handleAutoFill();
     }
   };
@@ -51,6 +72,13 @@ export const WordForm: React.FC<WordFormProps> = ({ initialData, onSave, onCance
     setLoadingCollocations(false);
   };
 
+  const playAudio = () => {
+    if (dictionaryData?.audioUrl) {
+      const audio = new Audio(dictionaryData.audioUrl);
+      audio.play().catch(e => console.error("Audio play error", e));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newItem: VocabItem = {
@@ -60,6 +88,7 @@ export const WordForm: React.FC<WordFormProps> = ({ initialData, onSave, onCance
       contextSentence: context,
       collocations,
       notes,
+      dictionaryData, // Save the fetched dictionary data locally
       createdAt: initialData?.createdAt || Date.now(),
       lastReviewed: initialData?.lastReviewed || Date.now(),
       masteryLevel: initialData?.masteryLevel || MasteryLevel.New,
@@ -80,39 +109,78 @@ export const WordForm: React.FC<WordFormProps> = ({ initialData, onSave, onCance
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Word & Meaning */}
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Word / Phrase</label>
-            <div className="relative">
-              <input 
-                value={word}
-                onChange={e => setWord(e.target.value)}
-                onBlur={handleBlurWord}
-                className="w-full text-lg font-bold p-3 pr-12 bg-zinc-50 dark:bg-zinc-800 rounded-lg border-2 border-transparent focus:border-primary-500 outline-none"
-                placeholder="e.g. Serendipity"
-                required
-              />
-              <button
-                type="button"
-                onClick={handleAutoFill}
-                disabled={!word || loadingAutoFill}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                title="Auto-generate Meaning & Context"
-              >
-                 {loadingAutoFill ? <Loader2 size={20} className="animate-spin"/> : <Sparkles size={20} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Meaning (IPA & Chinese)</label>
+        {/* Word Input */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Word / Phrase</label>
+          <div className="relative">
             <input 
-              value={meaning}
-              onChange={e => setMeaning(e.target.value)}
-              className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-primary-500/20"
-              placeholder="e.g. /wɜːd/ 词; 话语"
+              value={word}
+              onChange={e => setWord(e.target.value)}
+              onBlur={handleBlurWord}
+              className="w-full text-lg font-bold p-3 pr-12 bg-zinc-50 dark:bg-zinc-800 rounded-lg border-2 border-transparent focus:border-primary-500 outline-none"
+              placeholder="e.g. Serendipity"
+              required
             />
+            <button
+              type="button"
+              onClick={handleAutoFill}
+              disabled={!word || loadingAutoFill}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+              title="Auto-generate Meaning & Context"
+            >
+               {loadingAutoFill ? <Loader2 size={20} className="animate-spin"/> : <Sparkles size={20} />}
+            </button>
           </div>
+          
+          {/* Dictionary Preview */}
+          {(dictionaryData || loadingDict) && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+              {loadingDict ? (
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400">
+                  <Loader2 size={12} className="animate-spin mr-2" /> Fetching definitions...
+                </div>
+              ) : dictionaryData ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded">
+                        Dictionary
+                      </span>
+                      <span className="font-mono text-sm text-zinc-600 dark:text-zinc-400">
+                        {dictionaryData.phonetic}
+                      </span>
+                    </div>
+                    {dictionaryData.audioUrl && (
+                      <button 
+                        type="button" 
+                        onClick={playAudio}
+                        className="p-1.5 bg-blue-100 dark:bg-blue-800 rounded-full text-blue-600 dark:text-blue-300 hover:bg-blue-200"
+                      >
+                        <Volume2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {dictionaryData.meanings.slice(0, 1).map((m, i) => (
+                     <div key={i} className="text-xs text-zinc-700 dark:text-zinc-300">
+                       <span className="italic font-semibold mr-1">{m.partOfSpeech}</span>
+                       {m.definition}
+                     </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* Meaning */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Meaning (My Definition)</label>
+          <input 
+            value={meaning}
+            onChange={e => setMeaning(e.target.value)}
+            className="w-full p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-primary-500/20"
+            placeholder="e.g. /wɜːd/ 词; 话语"
+          />
         </div>
 
         {/* Context */}

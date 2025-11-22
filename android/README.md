@@ -9,16 +9,30 @@ The actual Android Studio project files (Gradle, Java/Kotlin activities, XML res
    npm run clean
    ```
 
-2. **Generate Android Folder:**
+2. **Set Android SDK Path (Important!):**
+   If you get an error saying "Please provide the path to the Android SDK", run this in your terminal before initializing:
+   
+   **macOS:**
+   ```bash
+   export ANDROID_HOME=~/Library/Android/sdk
+   ```
+   
+   **Windows:**
+   ```powershell
+   $env:ANDROID_HOME = "$HOME\AppData\Local\Android\Sdk"
+   ```
+
+3. **Generate Android Folder:**
    ```bash
    npm run android:init
    ```
 
-3. **Open in Android Studio:**
+4. **Open in Android Studio:**
    ```bash
    npm run android:open
    ```
 
-4. **Build APK:**
-   - inside Android Studio, go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+5. **Build APK:**
+   - Inside Android Studio, wait for Gradle sync to finish.
+   - Go to **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
    - The APK will be generated in `android/app/build/outputs/apk/debug/`.
