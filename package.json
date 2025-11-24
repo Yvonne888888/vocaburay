@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist android",
-    "android:init": "npm run clean && npm install && npm run build && npx cap add android",
+    "android:init": "node scripts/reset-android.js",
     "android:open": "npx cap open android",
     "android:sync": "npm run build && npx cap sync"
   },

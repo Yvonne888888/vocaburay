@@ -97,13 +97,12 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
             <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800/20">
                <div className="flex items-center gap-2 mb-2">
                  <Book size={12} className="text-blue-500" />
-                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Dictionary Definitions</p>
+                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Dictionary Data</p>
                </div>
                {item.dictionaryData.meanings.map((m, idx) => (
                  <div key={idx} className="mb-2 last:mb-0 text-xs">
                    <span className="italic font-medium text-zinc-500 mr-1">({m.partOfSpeech})</span>
                    <span className="text-zinc-800 dark:text-zinc-200">{m.definition}</span>
-                   {m.example && <div className="text-zinc-500 italic mt-0.5 pl-2 border-l border-blue-200 dark:border-blue-800">"{m.example}"</div>}
                  </div>
                ))}
             </div>
@@ -111,23 +110,9 @@ export const WordCard: React.FC<WordCardProps> = ({ item, onEdit, onDelete }) =>
 
           {/* Context Section */}
           <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
-            <p className="text-xs font-semibold text-zinc-400 uppercase mb-1">Common Context</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase mb-1">Context</p>
             <p className="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed whitespace-pre-wrap">{item.contextSentence}</p>
           </div>
-
-          {/* Collocations */}
-          {item.collocations.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-zinc-400 uppercase mb-2">Collocations</p>
-              <div className="flex flex-wrap gap-2">
-                {item.collocations.map((col, idx) => (
-                  <span key={idx} className="text-xs bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-600 dark:text-zinc-400">
-                    {col}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Notes Section */}
           {item.notes && (

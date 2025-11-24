@@ -2,14 +2,13 @@
 export interface VocabItem {
   id: string;
   word: string;
-  contextSentence: string; // Contains 2 sentences illustrating common usage
-  userMeaning: string; // IPA + Chinese Meaning (User's custom or AI generated)
-  collocations: string[];
+  contextSentence: string; // Auto-filled from Dictionary Example
+  userMeaning: string; // Auto-filled from Dictionary Definition
   notes: string; // User remarks/notes
   createdAt: number;
   lastReviewed: number;
   masteryLevel: MasteryLevel;
-  dictionaryData?: DictionaryData; // New field for cached external API data
+  dictionaryData?: DictionaryData; // Cached external API data
 }
 
 export interface DictionaryData {
@@ -22,20 +21,22 @@ export interface DictionaryData {
   }[];
 }
 
+// AI Search Result Structure
+export interface AISearchResult {
+  word: string;
+  definition: string;
+  context: string;
+}
+
 export enum MasteryLevel {
   New = 'New',
   Learning = 'Learning',
   Mastered = 'Mastered'
 }
 
-export type ViewMode = 'list' | 'add' | 'edit' | 'review';
+export type ViewMode = 'home' | 'library' | 'list' | 'add' | 'edit' | 'review' | 'settings';
 
 export interface FilterState {
   search: string;
   mastery: MasteryLevel | 'All';
-}
-
-// AI Response types
-export interface AICollocationResponse {
-  collocations: string[];
 }

@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { ViewMode } from '../types';
-import { BookOpen, PlusCircle, Dumbbell, Moon, Sun } from 'lucide-react';
+import { Book, Home, Clock, Moon, Sun, Settings as SettingsIcon } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,12 +31,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }
         <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
           VocabFlow
         </h1>
-        <button 
-          onClick={toggleTheme}
-          className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          {isDark ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-zinc-600" />}
-        </button>
+        <div className="flex items-center gap-2">
+           <button 
+            onClick={() => setView('settings')}
+            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-zinc-600"
+          >
+            <SettingsIcon size={20} />
+          </button>
+          <button 
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            {isDark ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-zinc-600" />}
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -44,24 +53,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }
       </main>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 w-full max-w-md bg-surface-light dark:bg-surface-dark border-t border-zinc-200 dark:border-zinc-800 pb-safe">
+      <nav className="fixed bottom-0 w-full max-w-md bg-surface-light dark:bg-surface-dark border-t border-zinc-200 dark:border-zinc-800 pb-safe z-20">
         <div className="flex justify-around items-center h-16">
           <NavBtn 
-            icon={<BookOpen size={24} />} 
-            label="Library" 
-            active={currentView === 'list'} 
-            onClick={() => setView('list')} 
+            icon={<Home size={24} />} 
+            label="Home" 
+            active={currentView === 'home' || currentView === 'add'} 
+            onClick={() => setView('home')} 
           />
-          <div className="relative -top-6">
-            <button 
-              onClick={() => setView('add')}
-              className="bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 active:scale-95 transition-transform"
-            >
-              <PlusCircle size={28} />
-            </button>
-          </div>
           <NavBtn 
-            icon={<Dumbbell size={24} />} 
+            icon={<Book size={24} />} 
+            label="Library" 
+            active={currentView === 'library' || currentView === 'list'} 
+            onClick={() => setView('library')} 
+          />
+          <NavBtn 
+            icon={<Clock size={24} />} 
             label="Review" 
             active={currentView === 'review'} 
             onClick={() => setView('review')} 

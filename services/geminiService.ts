@@ -1,84 +1,116 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { AICollocationResponse } from "../types";
 
-// Initialize Gemini API Client
-// NOTE: process.env.API_KEY is injected by Vite during build from your .env file or system env.
-const apiKey = process.env.API_KEY;
-const ai = new GoogleGenAI({ apiKey: apiKey || '' });
+import { GoogleGenAI } from "@google/genai";
+import { AISearchResult } from "../types";
 
-const MODEL_FAST = 'gemini-2.5-flash';
+const LOCAL_STORAGE_KEY = 'vocabflow_gemini_key';
 
-export const generateCollocations = async (word: string): Promise<string[]> => {
-  if (!apiKey) { 
-    console.warn("API Key not found"); 
-    return []; 
+export const getApiKey = (): string | null => {
+  // 1. Check Local Storage (User entered in Settings)
+  const localKey = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (localKey) return localKey;
+
+  // 2. Check Environment Variable (Build time)
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    // @ts-ignore
+    return process.env.API_KEY;
   }
+
+  return null;
+};
+
+export const saveApiKey = (key: string) => {
+  localStorage.setItem(LOCAL_STORAGE_KEY, key);
+};
+
+export const searchEnglishFromChinese = async (chineseInput: string): Promise<AISearchResult[]> => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("MISSING_KEY");
+  }
+
   try {
-    const prompt = `Generate 3 common, natural English collocations for the word or phrase: "${word}". Return ONLY the raw strings in a JSON array.`;
+    const ai = new GoogleGenAI({ apiKey });
     
-    const response = await ai.models.generateContent({
-      model: MODEL_FAST,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            collocations: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            }
-          }
+    const prompt = `
+      You are an English vocabulary assistant. 
+      The user wants to express this Chinese concept in English: "${chineseInput}".
+      
+      Provide 3 best English words, phrases, or idioms that match this meaning.
+      Return strictly a JSON array. Do not include markdown formatting (like \`\`\`json).
+      
+      JSON Format:
+      [
+        {
+          "word": "Word/Phrase",
+          "definition": "Simple English definition",
+          "context": "A natural example sentence using it"
         }
+      ]
+    `;
+
+    // Switch to gemini-2.5-flash to avoid "Rpc failed due to xhr error" (Code 6)
+    // which often occurs with restricted preview models in browser environments.
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash', 
+      contents: prompt,
+    });
+
+    const text = response.text;
+    if (!text) return [];
+
+    // Clean potential markdown syntax aggressively
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    try {
+      const results: AISearchResult[] = JSON.parse(jsonString);
+      return results;
+    } catch (parseError) {
+      console.error("JSON Parse failed:", text);
+      throw new Error("Invalid AI response format");
+    }
+
+  } catch (error) {
+    console.error("Gemini Search Error:", error);
+    // Propagate error so UI knows to show error state
+    throw error;
+  }
+};
+
+/**
+ * Generates definition and context for a specific English word using AI.
+ */
+export const generateWordDetails = async (word: string): Promise<{ definition: string; context: string } | null> => {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `
+      For the English word/phrase: "${word}".
+      1. Provide a concise, simple English definition.
+      2. Provide a natural, modern context sentence (like from a podcast or conversation).
+      
+      Return strictly JSON:
+      {
+        "definition": "...",
+        "context": "..."
       }
-    });
+    `;
 
-    const json = JSON.parse(response.text || '{"collocations": []}') as AICollocationResponse;
-    return json.collocations;
-  } catch (error) {
-    console.error("Gemini API Error (Collocations):", error);
-    return [];
-  }
-};
-
-export const generateContext = async (word: string): Promise<string> => {
-  if (!apiKey) return "";
-  try {
-    // Requesting 2 sentences based on most common usage
-    const prompt = `Generate TWO short, authentic English context sentences using the word or phrase: "${word}". 
-    Focus on the most common usage/meaning of the word. 
-    The sentences should sound like they are from a modern podcast or casual conversation. 
-    Return them as a single string separated by a space.`;
-    
     const response = await ai.models.generateContent({
-      model: MODEL_FAST,
+      model: 'gemini-2.5-flash', // Keep flash for speed on simple generation tasks
       contents: prompt,
     });
 
-    return response.text?.trim() || "";
-  } catch (error) {
-    console.error("Gemini API Error (Context):", error);
-    return "";
-  }
-};
+    const text = response.text;
+    if (!text) return null;
 
-export const generateMeaning = async (word: string): Promise<string> => {
-  if (!apiKey) return "";
-  try {
-    // Specifically requesting IPA and Chinese
-    const prompt = `Provide the IPA phonetic transcription and the 1-2 most common CHINESE meanings for the word: "${word}".
-    Format the output EXACTLY like this: "/IPA/ Chinese Meaning 1; Chinese Meaning 2".
-    Example output: "/həˈləʊ/ 你好; 喂".
-    Keep it concise. Do not include English definitions.`;
-    
-    const response = await ai.models.generateContent({
-      model: MODEL_FAST,
-      contents: prompt,
-    });
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(jsonString);
 
-    return response.text?.trim() || "";
   } catch (error) {
-    console.error("Gemini API Error (Meaning):", error);
-    return "";
+    console.error("Gemini Details Error:", error);
+    return null;
   }
 };
